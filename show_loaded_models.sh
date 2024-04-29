@@ -20,6 +20,8 @@ while [ "$#" -gt 0 ]; do
       echo "  -j, --json_output        Prints result as a json object. Other output disabled. (Default: false)"      
       echo "  -p, --port [port number] Specify Ollama Server port (Default: 11434)"
       echo "  -u, --ollama_url [url]   Specify Ollama Server URL (Default: http://localhost)"
+      echo
+      echo " Dependencies: jq"
       exit 0
       ;;
     -j|--json_output)
