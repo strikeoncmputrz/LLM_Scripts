@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Default values
-model_name="[INSERT HERE OR SPECIFY AT RUNTIME]"
-models_path="[INSERT HERE OR SPECIFY AT RUNTIME]"
+model_name="LoneStriker_Hermes-3-Llama-3.1-70B-6.0bpw-h6-exl2_main"
+models_path="/nvme/LLMs"
 load_endpoint="/v1/model/load"
 unload_endpoint="/v1/model/unload"
-tabby_host="http://localhost:5000"
+tabby_host="http://llama.lan:5000"
 unload=1
-api_key="[INSERT HERE OR SPECIFY AT RUNTIME]"
+api_key="2ccec36b31f22de834a0bf44e5356990"
 
 # Parse arguments
 while [ "$#" -gt 0 ]; do
@@ -17,7 +17,7 @@ while [ "$#" -gt 0 ]; do
       echo "Usage: $0 [options]"
       echo
       echo "Options:"
-      echo "  -a, --api-key      Specify tabbyAPI key (optional if specified within script default vars)"
+      echo "  -a, --api-key      Specify tabbyAPI key (optional)"
       echo "  -c, --cache-mode   Specify a cache mode (optional)"
       echo "  -d, --draft-model  Specify a draft model name (optional)"
       echo "  -e, --experts      Specify the number of experts per token (optional)"
@@ -25,13 +25,13 @@ while [ "$#" -gt 0 ]; do
       echo "  -H, --tabby-host   Specify tabbyAPI host (optional)"
       echo "  -h, --help         Display this help menu (optional)"
       echo "  -l, --seq-length   Specify a maximum sequence length (optional)"
-      echo "  -m, --model        Specify a model name (optional if specified within script default vars)"
+      echo "  -m, --model        Specify a model name (optional, default: turboderp_Mixtral-8x7B-instruct-exl2_8.0bpw)"
       echo "  -n, --no-unload    Don't unload a model before loading this one (optional)"
       echo "  -p, --prompt       Specify a prompt template (optional)"
       echo "  -r, --autores      Specify a list of reserved VRAM allocations for autosplit (optional e.g. 96 96 96)"
       echo "  -s, --model-size   Display the size of each model directory in models_path (optional)"
-      echo "  -t, --tensor-parallel   Enable tensor parallel (optional)"  
-      
+      echo "  -t, --tensor-parallel   Enable tensor parallel (optional)"
+      echo "  -q, --draft-cache  Specify the cache mode for the draft model (optional)"
       exit 0
       ;;
     -a|--api-key)
@@ -93,6 +93,10 @@ while [ "$#" -gt 0 ]; do
         tensor_parallel=1
         shift
       ;;
+    -q|--draft-cache)
+        draft_cache_mode=$2
+        shift 2
+      ;;
     *)
       echo "Unknown option: $1"
       exit 1
@@ -127,7 +131,7 @@ load_model() {
         request_body+=", \"gpu_split\": ["$(IFS=,; echo "${gpu_split_array[*]}")"]";
     fi
 
-   # Add gpu autosplit when gpu_split isn't specified
+    # Add gpu autosplit when gpu_split isn't specified
     if [ -z "$gpu_split" ]; then
         request_body+=", \"gpu_split_auto\": true";
     fi
@@ -146,14 +150,16 @@ load_model() {
     # Add draft model if specified
     if [ -n "$draft_model_name" ]; then
         request_body+=", \"draft\": {
-            \"draft_model_name\": \"$draft_model_name\"
-        }";
+            \"draft_model_name\": \"$draft_model_name\"";
+        if [ -n "$draft_cache_mode" ]; then
+            request_body+=", \"draft_cache_mode\": \"$draft_cache_mode\"";
+        fi
+        request_body+="}";
     fi
-
 
     request_body+='}';
 
-    echo -e "$request_body \n";
+    echo -e "$request_body" | jq '.'
 
     curl -X POST -H "Content-Type: application/json" \
         -H "Authorization: Bearer $api_key" \
