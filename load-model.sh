@@ -5,9 +5,9 @@ model_name="LoneStriker_Hermes-3-Llama-3.1-70B-6.0bpw-h6-exl2_main"
 models_path="/nvme/LLMs"
 load_endpoint="/v1/model/load"
 unload_endpoint="/v1/model/unload"
-tabby_host="http://$TABBY_API_URL"
+tabby_host="http://tabby-url:5000"
 unload=1
-api_key="$API_KEY"
+api_key="[your-api-key]"
 
 # Parse arguments
 while [ "$#" -gt 0 ]; do
@@ -59,7 +59,7 @@ while [ "$#" -gt 0 ]; do
       shift 2
       ;;
     -l|--seq-length)
-      max_seq_length=$2
+      max_seq_len=$2
       shift 2
       ;;
     -m|--model)
@@ -121,8 +121,8 @@ load_model() {
     if [ -n "$cache_mode" ]; then
         request_body+=", \"cache_mode\": \"$cache_mode\"";
     fi
-    if [ -n "$max_seq_length" ]; then
-        request_body+=", \"max_seq_length\": $max_seq_length";
+    if [ -n "$max_seq_len" ]; then
+        request_body+=", \"max_seq_len\": $max_seq_len";
     fi
 
     # Convert bash array to JSON list for gpu_split
@@ -150,7 +150,8 @@ load_model() {
     # Add draft model if specified
     if [ -n "$draft_model_name" ]; then
         request_body+=", \"draft\": {
-            \"draft_model_name\": \"$draft_model_name\"";
+            \"draft_model_name\": \"$draft_model_name\",
+            \"draft_gpu_split\": [3, 3, 3, 3, 3, 3]";
         if [ -n "$draft_cache_mode" ]; then
             request_body+=", \"draft_cache_mode\": \"$draft_cache_mode\"";
         fi
